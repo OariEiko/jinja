@@ -9,8 +9,8 @@ class ZenkokuJinjaSpider(scrapy.Spider):
     start_urls = ['https://shrine.mobi/']
     # スパイダーごとの設定
     custom_settings = {
-        'CONCURRENT_REQUESTS': 4,
-        'DOWNLOAD_DELAY': 30,
+        'CONCURRENT_REQUESTS': 3,
+        'DOWNLOAD_DELAY': 60,
         'ITEM_PIPELINES': {'jinja.pipelines.ZenkokuJinjaPipeline': 800}
     }
 
@@ -19,7 +19,7 @@ class ZenkokuJinjaSpider(scrapy.Spider):
         area_urls = response.xpath('//div[@id="map_box"]//ul/li/a/@href')
         if area_urls:
             for area_url in area_urls:
-                yield scrapy.Request(area_url.get(), callback=self.parse_list)
+                yield response.follow(area_url.get(), callback=self.parse_list)
         else:
             self.logger.warn(f'起点ページから一覧URLを取得できませんでした...(URL:{response.url})')
 
@@ -31,7 +31,7 @@ class ZenkokuJinjaSpider(scrapy.Spider):
         area = response.css('div.line_head').re_first(r'<h2\s*[^>]*?>(.*?)の神社一覧\s*</h2>', default='')
 
         # 詳細ページのURLを取得
-        detail_urls = response.css('div.list_data ul.list_main').xpath('./li/a/@href')
+        detail_urls = response.xpath('//div[has-class("list_data")]//ul[has-class("list_main")]/li/a/@href')
         if detail_urls:
             for detail_url in detail_urls:
                 # 受け渡す値の準備
@@ -39,12 +39,13 @@ class ZenkokuJinjaSpider(scrapy.Spider):
                     'referer': referer,
                     'area': area,
                 }
-                yield scrapy.Request(detail_url.get(), callback=self.parse_detail, cb_kwargs=keyword_args)
+                yield response.follow(detail_url.get(), callback=self.parse_detail, cb_kwargs=keyword_args)
 
         # ページング処理
-        next_page = response.css('div.list_data ul.linklist').xpath('./li/span/following-sibling::a[1]/@href')
+        next_xpath = '//div[has-class("list_data")]//ul[has-class("linklist")]/li/span/following-sibling::a[1]/@href'
+        next_page = response.xpath(next_xpath)
         if next_page:
-            yield scrapy.Request(next_page.get(), callback=self.parse_list)
+            yield response.follow(next_page.get(), callback=self.parse_list)
 
     # 詳細ページから値を抽出
     def parse_detail(self, response, referer, area):
