@@ -1,0 +1,4 @@
+**/__init__.py
+scrapy.cfg
+jinja/__pycache__/
+jinja/spiders/__pycache__/
