@@ -65,7 +65,7 @@ class ZenkokuJinjaPipeline:
         """
         # 既に登録されたデータは保存しない
         self.c.execute("""
-            SELECT * FROM zenkoku_jinja WHERE detail_url = %s
+            SELECT * FROM zenkoku_jinja WHERE url = %s
         """, (item['url'],))
         saved_url = self.c.fetchone()
         if saved_url:
